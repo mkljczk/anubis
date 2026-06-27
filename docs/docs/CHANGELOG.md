@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- This changes the project to: -->
 
+- Add an opt-in, consent-gated Monero (RandomX) mining challenge (`monero` challenge algorithm) configured via the [`mining`](./admin/configuration/mining.mdx) block in the policy file. Visitors must explicitly accept before any mining begins; declining denies access.
+
 ## v1.26.0-pre1
 
 - Patch [GHSA-6wcg-mqvh-fcvg](https://github.com/TecharoHQ/anubis/security/advisories/GHSA-6wcg-mqvh-fcvg) by containing subrequest logic to Anubis instances in subrequest mode.

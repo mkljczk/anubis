@@ -1,0 +1,116 @@
+---
+title: Browser mining (Monero)
+---
+
+:::warning
+
+This is an **opt-in, consent-gated** feature. When enabled, visitors are shown a
+screen that explains the site is funded by mining Monero in their browser and are
+asked to **Accept** or **Refuse**. No mining happens unless the visitor accepts.
+
+Running this **without** clear, honest consent is cryptojacking (malware). The
+consent screen and the refuse option are mandatory parts of this feature and
+must not be removed. Many browsers, ad blockers and antivirus products flag
+in-browser miners regardless of consent, and the revenue from browser-based
+RandomX mining is very small. Consider whether a donation link or another
+funding model fits your needs better before enabling this.
+
+:::
+
+Instead of throwing away the proof-of-work a visitor's browser performs, Anubis
+can ask the visitor's browser to perform Monero ([RandomX](https://github.com/tevador/RandomX))
+mining toward a wallet you control. Once the configured number of shares has been
+accepted by your pool, the visitor is granted access through the normal Anubis
+flow.
+
+## How it works
+
+1. A bot rule with the `monero` challenge algorithm matches a request.
+2. Anubis serves a consent screen. Nothing runs until the visitor clicks
+   **Accept**.
+3. The browser opens a WebSocket to Anubis. Anubis bridges that connection to
+   your mining pool's stratum endpoint and logs in with your wallet.
+4. The browser mines, submitting shares back through Anubis to the pool.
+5. Shares are only counted when the **pool** accepts them, so progress cannot be
+   forged by the client.
+6. When enough shares are accepted, the visitor is let through.
+
+The browser never talks to the pool directly and never learns the pool password.
+
+## Configuration
+
+Add a `mining` block to your policy file:
+
+```yaml
+mining:
+  enabled: true
+  wallet_address: "8C9cVFPycccYt4EejmyqZhQRPSEUSi1Ht9MQL4gdBjsX5f2TvSHP8i5AS4PWCnKM9wW7UUFVAGiY1LhNoQZfJan8Lse6Ct7"
+  pool: "pool.example.com:3333"
+  pool_uses_tls: false
+  password: "x"
+  required_shares: 8
+  threads: 0      # 0 = pick a default from the visitor's hardware
+  throttle: 0.5   # fraction of time each worker idles (0.0 = full speed)
+  wasm_url: "/path/to/randomx.mjs"
+```
+
+Then reference the `monero` algorithm from a bot rule:
+
+```yaml
+bots:
+  - name: visitors
+    user_agent_regex: Mozilla
+    action: CHALLENGE
+    challenge:
+      algorithm: monero
+      difficulty: 1
+```
+
+### Options
+
+| Key | Required | Default | Description |
+| --- | --- | --- | --- |
+| `enabled` | yes | `false` | Turns the mining subsystem on. When off, `monero` challenge rules fail closed. |
+| `wallet_address` | yes | — | The Monero address mined shares are credited to. |
+| `pool` | yes | — | Pool stratum endpoint in `host:port` form. |
+| `pool_uses_tls` | no | `false` | Dial the pool over TLS. |
+| `password` | no | `x` | Pool worker password. |
+| `rig_id` | no | — | Optional rig identifier reported to the pool. |
+| `required_shares` | no | `8` | Pool-accepted shares required before access is granted. |
+| `threads` | no | auto | Number of web workers the browser spawns. |
+| `throttle` | no | `0.5` | Fraction of time each worker idles, in `[0.0, 1.0]`. |
+| `wasm_url` | no | — | URL the browser loads the RandomX hashing core from. |
+
+## Supplying the RandomX hashing core
+
+Anubis ships the consent screen, the WebSocket-to-stratum bridge, share
+accounting and the mining worker plumbing, but it does **not** ship a RandomX
+implementation. RandomX is a large, memory-hard algorithm that must be compiled
+to WebAssembly separately.
+
+Point `wasm_url` at a module that `export default`s an async factory resolving to
+an object with this interface:
+
+```ts
+interface RandomXModule {
+  // (re)initialize the RandomX cache for the given 32-byte seed hash
+  init(seedHash: Uint8Array): Promise<void>;
+  // return the 32-byte RandomX hash of the input blob
+  hash(input: Uint8Array): Uint8Array;
+}
+
+export default async function (): Promise<RandomXModule> { /* ... */ }
+```
+
+The worker handles stratum job parsing, nonce placement (4 bytes at offset 39 of
+the Monero blob), the target check and share submission. Without a valid
+`wasm_url`, the worker stays idle and no shares are produced.
+
+## Notes and caveats
+
+- In-browser RandomX runs at a tiny fraction of native hashrate. Expect very
+  little revenue.
+- Anubis only mines while the consent/mining page is open. Once the visitor is
+  proxied to your upstream site, mining stops.
+- Browsers, ad blockers and antivirus tooling commonly block in-browser miners.
+- Always be transparent. Covert mining is malware.

@@ -335,6 +335,7 @@ type fileConfig struct {
 	DNSTTL      DnsTTL              `json:"dns_ttl"`
 	Logging     *Logging            `json:"logging"`
 	Metrics     *Metrics            `json:"metrics,omitempty"`
+	Mining      *Mining             `json:"mining,omitempty"`
 }
 
 func (c *fileConfig) Valid() error {
@@ -382,6 +383,12 @@ func (c *fileConfig) Valid() error {
 		}
 	}
 
+	if c.Mining != nil {
+		if err := c.Mining.Valid(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	if len(errs) != 0 {
 		return fmt.Errorf("config is not valid:\n%w", errors.Join(errs...))
 	}
@@ -425,6 +432,14 @@ func Load(fin io.Reader, fname string) (*Config, error) {
 		Store:       c.Store,
 		Logging:     c.Logging,
 		Metrics:     c.Metrics,
+	}
+
+	if c.Mining != nil {
+		c.Mining.SetDefaults()
+		if err := c.Mining.Valid(); err != nil {
+			return nil, err
+		}
+		result.Mining = c.Mining
 	}
 
 	if c.OpenGraph.TimeToLive != "" {
@@ -517,6 +532,7 @@ type Config struct {
 	DNSBL       bool
 	DNSTTL      DnsTTL
 	Metrics     *Metrics
+	Mining      *Mining
 }
 
 func (c Config) Valid() error {

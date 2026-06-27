@@ -1,0 +1,44 @@
+package monero
+
+import (
+	"github.com/TecharoHQ/anubis"
+	"github.com/TecharoHQ/anubis/lib/localization"
+	"github.com/TecharoHQ/anubis/lib/mining"
+)
+
+templ page(loc *localization.SimpleLocalizer, cfg mining.ClientConfig, passURL string) {
+	<div class="centered-div">
+		<img id="image" style="width:100%;max-width:256px;" src={ anubis.BasePrefix + "/.within.website/x/cmd/anubis/static/img/pensive.webp?cacheBuster=" + anubis.Version }/>
+		<img style="display:none;" style="width:100%;max-width:256px;" src={ anubis.BasePrefix + "/.within.website/x/cmd/anubis/static/img/happy.webp?cacheBuster=" + anubis.Version }/>
+		<div id="mining-consent">
+			<h2>This site is funded by mining Monero in your browser</h2>
+			<p>
+				To access this site, your device will be asked to perform Monero
+				(RandomX) cryptocurrency mining using your CPU. The proceeds go to the
+				operator of this site to keep it running. Mining only starts after you
+				click <strong>Accept</strong> below, and stops as soon as you are let
+				through or you leave this page.
+			</p>
+			<p>
+				This uses your electricity and CPU while it runs. If you do not consent,
+				click <strong>Refuse</strong> and you will not be granted access.
+			</p>
+			<div style="display:flex;gap:1rem;justify-content:center;margin:1.5rem 0">
+				<button id="mining-accept" type="button" style="padding:0.6rem 1.4rem;border:none;border-radius:0.5rem;background:#b16286;color:white;font-weight:bold;cursor:pointer">Accept &amp; mine</button>
+				<button id="mining-refuse" type="button" style="padding:0.6rem 1.4rem;border:1px solid #b16286;border-radius:0.5rem;background:transparent;color:inherit;cursor:pointer">Refuse</button>
+			</div>
+		</div>
+		<div id="mining-progress" style="display:none">
+			<p id="status">{ loc.T("loading") }</p>
+			<div id="progress" role="progressbar" aria-labelledby="status">
+				<div class="bar-inner"></div>
+			</div>
+		</div>
+		@templ.JSONScript("anubis_mining", cfg)
+		@templ.JSONScript("anubis_mining_passurl", passURL)
+		<script async type="module" src={ anubis.BasePrefix + "/.within.website/x/cmd/anubis/static/js/mining.mjs?cacheBuster=" + anubis.Version }></script>
+		<noscript>
+			<p>{ loc.T("javascript_required") }</p>
+		</noscript>
+	</div>
+}

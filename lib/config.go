@@ -21,6 +21,7 @@ import (
 	"github.com/TecharoHQ/anubis/lib/challenge"
 	"github.com/TecharoHQ/anubis/lib/config"
 	"github.com/TecharoHQ/anubis/lib/localization"
+	"github.com/TecharoHQ/anubis/lib/mining"
 	"github.com/TecharoHQ/anubis/lib/policy"
 	"github.com/TecharoHQ/anubis/web"
 	"github.com/TecharoHQ/anubis/xess"
@@ -201,6 +202,11 @@ func New(opts Options) (*Server, error) {
 		// make-challenge is only used in tests. Only enable while version is devel
 		registerWithPrefix(anubis.APIPrefix+"make-challenge", http.HandlerFunc(result.MakeChallenge), "POST")
 	}
+
+	// Configure the opt-in mining subsystem before challenge implementations
+	// run their Setup, since the monero challenge registers its WebSocket route
+	// based on whether mining is active.
+	mining.Configure(opts.Policy.Mining, opts.Policy.Store)
 
 	for _, implKind := range challenge.Methods() {
 		impl, _ := challenge.Get(implKind)
