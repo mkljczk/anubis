@@ -48,6 +48,7 @@ type ParsedConfig struct {
 	Dns               *dns.Dns
 	Logger            *slog.Logger
 	Metrics           *config.Metrics
+	Mining            *config.Mining
 	ThothClient       *thoth.Client
 	LogASN            bool
 	NeedJA4H          bool
@@ -59,6 +60,7 @@ func newParsedConfig(orig *config.Config) *ParsedConfig {
 		OpenGraph:   orig.OpenGraph,
 		StatusCodes: orig.StatusCodes,
 		Metrics:     orig.Metrics,
+		Mining:      orig.Mining,
 	}
 }
 
